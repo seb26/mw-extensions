@@ -53,9 +53,9 @@ function wfLangSwitch_Setup() {
     global $wgLsInstance, $wgHooks;
     $wgLsInstance = new wfLangSwitch;
     
-    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'registerParser' );
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'getPageLang' );
-    
+    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'registerParser' );
+
     $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'getLangVar');
     $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsInstance, 'declareMagicVar');
     $wgHooks['LanguageGetMagic'][] = array( &$wgLsInstance, 'registerMagic');
@@ -73,8 +73,6 @@ class wfLangSwitch {
     
     function registerParser( &$parser ) {
         $parser->setFunctionHook( 'langswitch', array( &$this, 'parseLang' ), SFH_OBJECT_ARGS );
-        # $parser->setFunctionHook( 'setpagelang', array( &$this, 'setLang' ), SFH_NO_HASH );
-        # $parser->setFunctionHook( 'getLangVar', array( &$this, 'getLangVar' ), SFH_NO_HASH );
         return true;
     }
         
@@ -105,17 +103,14 @@ class wfLangSwitch {
             $sub = substr( strrchr($title, '/'), 1); # Return last occurence of "/xxx", then return "/xxx" without its first character.
             if ( in_array( $sub, array('en', 'ru', 'fr') ) ) {
                 $this->pageLang = $sub;
-                # return $sub;
             }
             else {
                 $this->pageLang = 'en';
-                # return 'en';
             }
         }
         else { 
             # If there isn't, skip ze nonsense and set lang to 'en'.
             $this->pageLang = 'en';
-            # return 'en';
         }
         return true;
     }
