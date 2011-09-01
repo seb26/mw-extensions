@@ -25,22 +25,26 @@ $wgExtensionCredits['parserhook'][] = array(
 $wgExtensionFunctions[] = 'wfLangSwitch_Setup';
  
 function wfLangSwitch_Setup() {
-    global $wgLsHookStub, $wgHooks;
-    $wgLsHookStub = new wfLangSwitch_HookStub;
+    global $wgLsInstance, $wgHooks;
+    $wgLsInstance = new wfLangSwitch;
     
-    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsHookStub, 'registerParser' );
-    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsHookStub, 'setPageLang' );
+    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'registerParser' );
+    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'setPageLang' );
     
-    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsHookStub, 'getLangVar');
-    $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsHookStub, 'declareMagicVar');
-    $wgHooks['LanguageGetMagic'][] = array( &$wgLsHookStub, 'registerMagic');
+    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'getLangVar');
+    $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsInstance, 'declareMagicVar');
+    $wgHooks['LanguageGetMagic'][] = array( &$wgLsInstance, 'registerMagic');
     
     return true;
 }
  
-class wfLangSwitch_HookStub { 
+class wfLangSwitch { 
 
-    var $lsObj;
+    # Variables
+    
+    var $pageLang = '';
+
+    # Setup functions
     
     function registerParser( &$parser ) {
         $parser->setFunctionHook( 'langswitch', array( &$this, 'parseLang' ), SFH_OBJECT_ARGS );
@@ -64,21 +68,9 @@ class wfLangSwitch_HookStub {
         $customVariableIds[] = 'currentpagelang';
         return true;
     }
+
+    # Actual functions
     
-    # Pass rest of stuff to wfLangSwitch instance.
-    function __call( $name, $args ) {
-        if ( is_null( $this->lsObj ) ) {
-            $this->lsObj = new wfLangSwitch;
-        }
-        return call_user_func_array( array( $this->lsObj, $name ), $args );
-    }
-        
-}
-
-class wfLangSwitch { 
-
-    var $pageLang = '';
-
     function getPageLang( $parser ) {
         $title = $parser->getTitle();
         # TODO: Consider ditching these string methods and see if $parser can spit out a Title object instead.
@@ -116,13 +108,9 @@ class wfLangSwitch {
         
         # First argument is the 'force' parameter. Should be left undefined in wikisyntax, most of the time.
         # Depending on whether or not it is, $lang will serve as the working variable (force or not).
-        
-        if ( $this->pageLang == '' ) {
-            print_r( 'pageLang not even defined :<' );
-        }
 
         $forceLang = trim( $frame->expand( $args[0] ) );
-        if ( $forceLang !== '' ) {
+        if ( $forceLang == '' ) {
             $lang = $this->pageLang;
         }
         else {
@@ -135,6 +123,25 @@ class wfLangSwitch {
             $bits = $arg->splitArg();
             $name = trim( $frame->expand( $bits['name'] ) );
             
+            if ( $name == $lang ) {
+                print_r( 'it matched' );
+            }
+            
+            /*
+            
+            if ( $name == 'en' ) {
+                $en = trim( $frame->expand( $bits['value'] ) );
+                print_r( 'found en value, storing...<br />');
+            }
+            if ( $name == $lang ) {
+                return trim( $frame->expand( $bits['value'] ) );
+                print_r( '$name matched $lang yay<br />' );
+            }
+            */ 
+            
+            # return '$en error';
+            
+            /*
             switch ( $name ) {
                 case $lang:
                     return trim( $frame->expand( $bits['value'] ) );
@@ -144,8 +151,10 @@ class wfLangSwitch {
                 default:
                     return $en;
             }
+            */
+
         }
+
         
-    # End function.    
     }
 }
