@@ -23,13 +23,38 @@ $wgExtensionCredits['parserhook'][] = array(
 
        
 $wgExtensionFunctions[] = 'wfLangSwitch_Setup';
+
+$wgLangSwitchAllowedLangs = array( 
+    'ar', 
+    'cs', 
+    'da', 
+    'de', 
+    'es', 
+    'fi', 
+    'fr', 
+    'hu', 
+    'it', 
+    'ja', 
+    'ko', 
+    'nl', 
+    'no', 
+    'pl', 
+    'pt', 
+    'pt-br', 
+    'ro', 
+    'ru', 
+    'sv', 
+    'tr', 
+    'zh-hans', 
+    'zh-hant'
+    );
  
 function wfLangSwitch_Setup() {
     global $wgLsInstance, $wgHooks;
     $wgLsInstance = new wfLangSwitch;
     
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'registerParser' );
-    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'setPageLang' );
+    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'getPageLang' );
     
     $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'getLangVar');
     $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsInstance, 'declareMagicVar');
@@ -72,6 +97,7 @@ class wfLangSwitch {
     # Actual functions
     
     function getPageLang( $parser ) {
+        global $wgLangSwitchAllowedLang;
         $title = $parser->getTitle();
         # TODO: Consider ditching these string methods and see if $parser can spit out a Title object instead.
         if ( strpos($title, '/') !== false ) {
@@ -119,42 +145,28 @@ class wfLangSwitch {
         array_shift( $args ); # Remove first argument, as we cannot iterate over it (was made a string earlier).
         
         $en = '';
+        $enFound = false;
         foreach ( $args as $arg ) {
             $bits = $arg->splitArg();
             $name = trim( $frame->expand( $bits['name'] ) );
             
-            if ( $name == $lang ) {
-                print_r( 'it matched' );
-            }
-            
-            /*
-            
             if ( $name == 'en' ) {
+                # Found en, storing it for laters
                 $en = trim( $frame->expand( $bits['value'] ) );
-                print_r( 'found en value, storing...<br />');
+                $enFound = true;
             }
             if ( $name == $lang ) {
                 return trim( $frame->expand( $bits['value'] ) );
-                print_r( '$name matched $lang yay<br />' );
             }
-            */ 
-            
-            # return '$en error';
-            
-            /*
-            switch ( $name ) {
-                case $lang:
-                    return trim( $frame->expand( $bits['value'] ) );
-                case 'en':
-                    $en = trim( $frame->expand( $bits['value'] ) );
-                    return $en;
-                default:
-                    return $en;
-            }
-            */
-
         }
-
+        
+        # $lang wasn't found. Put $en or blank string.
+        if ( $enFound ) {
+            return $en;
+        }
+        else {
+            return '';
+        }
         
     }
 }
