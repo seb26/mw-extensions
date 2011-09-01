@@ -1,0 +1,4 @@
+TODO:
+
+- Fix args[0] for instances like {{#langswitch:}} where simply nothing is given (as opposed to {{#langswitch:{{{x|}}}}} where the parser expands it to nothing).
+- Test stuff.
