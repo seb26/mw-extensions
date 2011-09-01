@@ -1,0 +1,151 @@
+<?php
+
+/* 
+ * Copyright (c) 2011 seb26. All rights reserved.
+ * Source code is licensed under the terms of the Modified BSD License.
+ * 
+ * MediaWiki is free software; you can redistribute it and/or modify it under the 
+ * terms of the GNU General Public License as published by the Free Software Foundation.
+ * <http://www.mediawiki.org/>
+ * 
+ */
+
+if ( !defined( 'MEDIAWIKI' ) ) {
+    die( 'This file is a MediaWiki extension, it is not a valid entry point' );
+}
+
+$wgExtensionCredits['parserhook'][] = array(
+       'name' => 'LangSwitch',
+       'author' => 'seb26', 
+       'url' => 'https://github.com/seb26/mw-extensions', 
+       'description' => 'Displays localized text based on the page\'s language suffix'
+       );
+
+       
+$wgExtensionFunctions[] = 'wfLangSwitch_Setup';
+ 
+function wfLangSwitch_Setup() {
+    global $wgLsHookStub, $wgHooks;
+    $wgLsHookStub = new wfLangSwitch_HookStub;
+    
+    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsHookStub, 'registerParser' );
+    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsHookStub, 'setPageLang' );
+    
+    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsHookStub, 'getLangVar');
+    $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsHookStub, 'declareMagicVar');
+    $wgHooks['LanguageGetMagic'][] = array( &$wgLsHookStub, 'registerMagic');
+    
+    return true;
+}
+ 
+class wfLangSwitch_HookStub { 
+
+    var $lsObj;
+    
+    function registerParser( &$parser ) {
+        $parser->setFunctionHook( 'langswitch', array( &$this, 'parseLang' ), SFH_OBJECT_ARGS );
+        # $parser->setFunctionHook( 'setpagelang', array( &$this, 'setLang' ), SFH_NO_HASH );
+        # $parser->setFunctionHook( 'getLangVar', array( &$this, 'getLangVar' ), SFH_NO_HASH );
+        return true;
+    }
+        
+    function registerMagic( &$magicWords, $langCode ) {
+        $magicWords['langswitch'] = array( 0, 'langswitch' ); # The parser function itself.
+        $magicWords['currentpagelang'] = array( 0, 'currentpagelang' ); # The reusable {{CURRENTPAGELANG}} which simply recites the value.
+        return true;
+    }
+    
+    function setPageLang( &$parser ) {
+        $this->getPageLang( $parser );
+        return true;
+    }
+
+    function declareMagicVar( &$customVariableIds ) {
+        $customVariableIds[] = 'currentpagelang';
+        return true;
+    }
+    
+    # Pass rest of stuff to wfLangSwitch instance.
+    function __call( $name, $args ) {
+        if ( is_null( $this->lsObj ) ) {
+            $this->lsObj = new wfLangSwitch;
+        }
+        return call_user_func_array( array( $this->lsObj, $name ), $args );
+    }
+        
+}
+
+class wfLangSwitch { 
+
+    var $pageLang = '';
+
+    function getPageLang( $parser ) {
+        $title = $parser->getTitle();
+        # TODO: Consider ditching these string methods and see if $parser can spit out a Title object instead.
+        if ( strpos($title, '/') !== false ) {
+            # If there is a '/' in the title...
+            $sub = substr( strrchr($title, '/'), 1); # Return last occurence of "/xxx", then return "/xxx" without its first character.
+            if ( in_array( $sub, array('en', 'ru', 'fr') ) ) {
+                $this->pageLang = $sub;
+                # return $sub;
+            }
+            else {
+                $this->pageLang = 'en';
+                # return 'en';
+            }
+        }
+        else { 
+            # If there isn't, skip ze nonsense and set lang to 'en'.
+            $this->pageLang = 'en';
+            # return 'en';
+        }
+        return true;
+    }
+    
+    function getLangVar( &$parser, &$cache, &$magicWordId, &$ret ) {
+        if ( $magicWordId == 'currentpagename' ) {
+            $ret = $this->pageLang;
+        }
+        return true;
+    }
+    
+    function parseLang( $parser, $frame, $args ) {
+        if ( count( $args ) == 0 ) {
+            return '';
+        }
+        
+        # First argument is the 'force' parameter. Should be left undefined in wikisyntax, most of the time.
+        # Depending on whether or not it is, $lang will serve as the working variable (force or not).
+        
+        if ( $this->pageLang == '' ) {
+            print_r( 'pageLang not even defined :<' );
+        }
+
+        $forceLang = trim( $frame->expand( $args[0] ) );
+        if ( $forceLang !== '' ) {
+            $lang = $this->pageLang;
+        }
+        else {
+            $lang = $forceLang;
+        }
+        array_shift( $args ); # Remove first argument, as we cannot iterate over it (was made a string earlier).
+        
+        $en = '';
+        foreach ( $args as $arg ) {
+            $bits = $arg->splitArg();
+            $name = trim( $frame->expand( $bits['name'] ) );
+            
+            switch ( $name ) {
+                case $lang:
+                    return trim( $frame->expand( $bits['value'] ) );
+                case 'en':
+                    $en = trim( $frame->expand( $bits['value'] ) );
+                    return $en;
+                default:
+                    return $en;
+            }
+        }
+        
+    # End function.    
+    }
+}
