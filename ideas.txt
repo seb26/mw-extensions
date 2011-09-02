@@ -1,0 +1,6 @@
+MediaWiki extension ideas:
+
+- LangSwitch
+- RedirectList
+- YouTube
+- Dictionary

@@ -56,7 +56,7 @@ function wfLangSwitch_Setup() {
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'getPageLang' );
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'registerParser' );
 
-    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'getLangVar');
+    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'currentpagename');
     $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsInstance, 'declareMagicVar');
     $wgHooks['LanguageGetMagic'][] = array( &$wgLsInstance, 'registerMagic');
     
@@ -95,13 +95,14 @@ class wfLangSwitch {
     # Actual functions
     
     function getPageLang( $parser ) {
-        global $wgLangSwitchAllowedLang;
+        global $wgLangSwitchAllowedLangs;
+        
         $title = $parser->getTitle();
         # TODO: Consider ditching these string methods and see if $parser can spit out a Title object instead.
         if ( strpos($title, '/') !== false ) {
             # If there is a '/' in the title...
             $sub = substr( strrchr($title, '/'), 1); # Return last occurence of "/xxx", then return "/xxx" without its first character.
-            if ( in_array( $sub, array('en', 'ru', 'fr') ) ) {
+            if ( in_array( $sub, $wgLangSwitchAllowedLangs ) ) {
                 $this->pageLang = $sub;
             }
             else {
@@ -115,7 +116,7 @@ class wfLangSwitch {
         return true;
     }
     
-    function getLangVar( &$parser, &$cache, &$magicWordId, &$ret ) {
+    function currentpagename( &$parser, &$cache, &$magicWordId, &$ret ) {
         if ( $magicWordId == 'currentpagename' ) {
             $ret = $this->pageLang;
         }
@@ -131,7 +132,7 @@ class wfLangSwitch {
         # Depending on whether or not it is, $lang will serve as the working variable (force or not).
 
         $forceLang = trim( $frame->expand( $args[0] ) );
-        if ( $forceLang == '' ) {
+        if ( $forceLang == '' || $forceLang == null ) {
             $lang = $this->pageLang;
         }
         else {
