@@ -60,6 +60,8 @@ function wfLangSwitch_Setup() {
     $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsInstance, 'declareMagicVar');
     $wgHooks['LanguageGetMagic'][] = array( &$wgLsInstance, 'registerMagic');
     
+    $wgHooks['OutputPageBodyAttributes'][] = array( &$wgLsInstance, 'setPageLangHTML');
+    
     return true;
 }
  
@@ -120,6 +122,16 @@ class wfLangSwitch {
     function currentpagelang( &$parser, &$cache, &$magicWordId, &$ret ) {
         if ( $magicWordId == 'currentpagelang' ) {
             $ret = $this->pageLang;
+        }
+        return true;
+    }
+    
+    function setPageLangHTML( $out, $sk, &$bodyAttrs ) {
+        if ( $this->pageLang == '' || $this->pageLang == null ) {
+            $bodyAttrs['class'] .= ' pagelang-en';
+        }
+        else {
+            $bodyAttrs['class'] .= ' pagelang-' . $this->pageLang;
         }
         return true;
     }
