@@ -56,7 +56,7 @@ function wfLangSwitch_Setup() {
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'getPageLang' );
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'registerParser' );
 
-    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'currentpagename');
+    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'currentpagelang');
     $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsInstance, 'declareMagicVar');
     $wgHooks['LanguageGetMagic'][] = array( &$wgLsInstance, 'registerMagic');
     
@@ -73,6 +73,7 @@ class wfLangSwitch {
     
     function registerParser( &$parser ) {
         $parser->setFunctionHook( 'langswitch', array( &$this, 'parseLang' ), SFH_OBJECT_ARGS );
+        $parser->setFunctionHook( 'currentpagelang', array( &$this, 'currentpagelang' ), SFH_NO_HASH );
         return true;
     }
         
@@ -116,8 +117,8 @@ class wfLangSwitch {
         return true;
     }
     
-    function currentpagename( &$parser, &$cache, &$magicWordId, &$ret ) {
-        if ( $magicWordId == 'currentpagename' ) {
+    function currentpagelang( &$parser, &$cache, &$magicWordId, &$ret ) {
+        if ( $magicWordId == 'currentpagelang' ) {
             $ret = $this->pageLang;
         }
         return true;
