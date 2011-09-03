@@ -21,9 +21,8 @@ $wgExtensionCredits['parserhook'][] = array(
        'description' => 'Displays localized text based on the page\'s language suffix'
        );
 
+# Set global variable defaults.
        
-$wgExtensionFunctions[] = 'wfLangSwitch_Setup';
-
 $wgLangSwitchAllowedLangs = array( 
     'ar', 
     'cs', 
@@ -48,19 +47,27 @@ $wgLangSwitchAllowedLangs = array(
     'zh-hans', 
     'zh-hant'
     );
+    
+$wgLangSwitchAddBodyClass = false;
+    
+# Start.
+    
+$wgExtensionFunctions[] = 'wfLangSwitch_Setup';
  
 function wfLangSwitch_Setup() {
-    global $wgLsInstance, $wgHooks;
+    global $wgLsInstance, $wgHooks, $wgLangSwitchAddBodyClass;
     $wgLsInstance = new wfLangSwitch;
     
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'getPageLang' );
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'registerParser' );
 
-    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'currentpagelang');
     $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsInstance, 'declareMagicVar');
     $wgHooks['LanguageGetMagic'][] = array( &$wgLsInstance, 'registerMagic');
+    $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'currentpagelang');
     
-    $wgHooks['OutputPageBodyAttributes'][] = array( &$wgLsInstance, 'setPageLangHTML');
+    if ( $wgLangSwitchAddBodyClass ) {
+        $wgHooks['OutputPageBodyAttributes'][] = array( &$wgLsInstance, 'setPageLangHTML');
+    }
     
     return true;
 }
@@ -99,7 +106,7 @@ class wfLangSwitch {
     
     function getPageLang( $parser ) {
         global $wgLangSwitchAllowedLangs;
-        
+
         $title = $parser->getTitle();
         # TODO: Consider ditching these string methods and see if $parser can spit out a Title object instead.
         if ( strpos($title, '/') !== false ) {
