@@ -167,8 +167,8 @@ class wfLangSwitch {
             $name = trim( $frame->expand( $bits['name'] ) );
             
             if ( $name == 'en' ) {
-                # Found en, storing it for laters
-                $en = trim( $frame->expand( $bits['value'] ) );
+                # Found en, storing the node for laters
+                $en = $bits['value'];
                 $enFound = true;
             }
             if ( $name == $lang ) {
@@ -178,7 +178,7 @@ class wfLangSwitch {
         
         # $lang wasn't found. Put $en or blank string.
         if ( $enFound ) {
-            return $en;
+            return trim( $frame->expand( $en ) );
         }
         else {
             return '';
