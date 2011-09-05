@@ -23,7 +23,7 @@ $wgExtensionCredits['parserhook'][] = array(
 
 # Set global variable defaults.
        
-$wgLangSwitchAllowedLangs = array( 
+$wgAllowedLanguages = array( 
     'ar', 
     'cs', 
     'da', 
@@ -53,47 +53,36 @@ $wgLangSwitchAddBodyClass = false;
 # Start.
     
 $wgExtensionFunctions[] = 'wfLangSwitch_Setup';
+$wgAutoloadClasses['ExtLangSwitch'] = dirname( __FILE__ );
  
 function wfLangSwitch_Setup() {
     global $wgLsInstance, $wgHooks, $wgLangSwitchAddBodyClass;
-    $wgLsInstance = new wfLangSwitch;
+    $wgLsInstance = new ExtLangSwitchInit;
     
-    $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'getPageLang' );
     $wgHooks['ParserFirstCallInit'][] = array( &$wgLsInstance, 'registerParser' );
-
+    
+    # Magic word / variable registration
     $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLsInstance, 'declareMagicVar');
     $wgHooks['LanguageGetMagic'][] = array( &$wgLsInstance, 'registerMagic');
     $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLsInstance, 'currentpagelang');
-    
-    if ( $wgLangSwitchAddBodyClass ) {
-        $wgHooks['OutputPageBodyAttributes'][] = array( &$wgLsInstance, 'setPageLangHTML');
-    }
-    
+
     return true;
 }
- 
-class wfLangSwitch { 
 
-    # Variables
-    
-    var $pageLang = '';
+class ExtLangSwitchInit {
 
-    # Setup functions
-    
+    var $realObj;
+
     function registerParser( &$parser ) {
         $parser->setFunctionHook( 'langswitch', array( &$this, 'parseLang' ), SFH_OBJECT_ARGS );
         $parser->setFunctionHook( 'currentpagelang', array( &$this, 'currentpagelang' ), SFH_NO_HASH );
+        $parser->gotPageLang = false;
         return true;
     }
         
     function registerMagic( &$magicWords, $langCode ) {
-        $magicWords['langswitch'] = array( 0, 'langswitch' ); # The parser function itself.
-        $magicWords['currentpagelang'] = array( 0, 'currentpagelang' ); # The reusable {{CURRENTPAGELANG}} which simply recites the value.
-        return true;
-    }
-    
-    function setPageLang( &$parser ) {
-        $this->getPageLang( $parser );
+        $magicWords['langswitch'] = array( 0, 'langswitch' );
+        $magicWords['currentpagelang'] = array( 0, 'currentpagelang' );
         return true;
     }
 
@@ -102,48 +91,76 @@ class wfLangSwitch {
         return true;
     }
 
-    # Actual functions
+    # From ParserFunctions.php
     
-    function getPageLang( $parser ) {
-        global $wgLangSwitchAllowedLangs;
+	/** Defer ParserClearState */
+	function clearState( $parser ) {
+		if ( !is_null( $this->realObj ) ) {
+			$this->realObj->clearState( $parser );
+		}
+		return true;
+	}
 
-        $title = $parser->getTitle();
-        # TODO: Consider ditching these string methods and see if $parser can spit out a Title object instead.
-        if ( strpos($title, '/') !== false ) {
-            # If there is a '/' in the title...
-            $sub = substr( strrchr($title, '/'), 1); # Return last occurence of "/xxx", then return "/xxx" without its first character.
-            if ( in_array( $sub, $wgLangSwitchAllowedLangs ) ) {
-                $this->pageLang = $sub;
-            }
-            else {
-                $this->pageLang = 'en';
-            }
-        }
-        else { 
-            # If there isn't, skip ze nonsense and set lang to 'en'.
-            $this->pageLang = 'en';
-        }
+	/** Pass through function call */
+	function __call( $name, $args ) {
+		if ( is_null( $this->realObj ) ) {
+			$this->realObj = new ExtLangSwitch;
+			$this->realObj->clearState( $args[0] );
+		}
+		return call_user_func_array( array( $this->realObj, $name ), $args );
+	}
+
+}
+ 
+class ExtLangSwitch { 
+
+    function clearState( $parser ) {
         return true;
     }
+
+    # Actual functions
     
     function currentpagelang( &$parser, &$cache, &$magicWordId, &$ret ) {
         if ( $magicWordId == 'currentpagelang' ) {
-            $ret = $this->pageLang;
+            $ret = $parser->mPageLang;
         }
         return true;
     }
-    
-    function setPageLangHTML( $out, $sk, &$bodyAttrs ) {
-        if ( $this->pageLang == '' || $this->pageLang == null ) {
-            $bodyAttrs['class'] .= ' pagelang-en';
+
+    function getPageLang( $title ) {
+        global $wgAllowedLanguages;
+        
+        if ( $title == null || $title == '' ) {
+            return 'FAIL';
         }
         else {
-            $bodyAttrs['class'] .= ' pagelang-' . $this->pageLang;
+            if ( strpos($title, '/') !== false ) {
+                # Only process if there is a '/' in the title, waste of effort otherwise.
+                # Return last occurence of "/xxx", then return "/xxx" without its first character.
+                $sub = substr( strrchr($title, '/'), 1); 
+                if ( in_array( $sub, $wgAllowedLanguages ) ) {
+                    return $sub;
+                }
+                else {
+                    return 'en';
+                }
+            }
+            else { 
+                # If there isn't, skip ze nonsense and set lang to 'en'.
+                return 'en';
+            }
         }
+
         return true;
     }
     
     function parseLang( $parser, $frame, $args ) {
+
+        if ( $parser->gotPageLang == false) {
+            $parser->mPageLang = $this->getPageLang( $parser->getTitle()->mTextform );
+            $parser->gotPageLang = true;
+        }
+
         if ( count( $args ) == 0 ) {
             return '';
         }
@@ -153,7 +170,7 @@ class wfLangSwitch {
 
         $forceLang = trim( $frame->expand( $args[0] ) );
         if ( $forceLang == '' || $forceLang == null ) {
-            $lang = $this->pageLang;
+            $lang = $parser->mPageLang;
         }
         else {
             $lang = $forceLang;
