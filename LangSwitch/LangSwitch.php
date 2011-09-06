@@ -122,7 +122,14 @@ class ExtLangSwitch {
     
     function currentpagelang( &$parser, &$cache, &$magicWordId, &$ret ) {
         if ( $magicWordId == 'currentpagelang' ) {
-            $ret = $parser->mPageLang;
+            if ( $parser->gotPageLang ) {
+                $ret = $parser->mPageLang;
+            }
+            else {
+                $parser->mPageLang = $this->getPageLang( $parser->getTitle()->mTextform );
+                $parser->gotPageLang = true;
+                $ret = $parser->mPageLang;
+            }
         }
         return true;
     }
