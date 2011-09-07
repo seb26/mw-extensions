@@ -38,30 +38,31 @@ function wfLangSidebar( $skin, &$bar ) {
     global $wgContLang, $wgAllowedLanguages, $wgLangSidebarShowNS;
 
     $title = $skin->mTitle;
-    $tparts = explode( '/', $title );
     
     if ( in_array( $title->mNamespace, $wgLangSidebarShowNS ) ) {
         # The page's namespace matches the whitelist.
         
-        $pageCount = 0;
+        $tparts = explode( '/', $title );
         $output = '<div class="portal"><ul>';
+        
+        $en = Title::newFromText( $tparts[0] );
+        $enUrl = $en->getLinkUrl();
+        
+        $output .= "<li id=\"n-en\"><a href=\"$enUrl\">English</a></li>";
         
         foreach ( $wgAllowedLanguages as $lang ) {
             $tlang = Title::newFromText( $tparts[0] . '/' . $lang );
             $id = $tlang->getArticleID();
             if ( $id !== 0 ) {
                 # If the page is a valid title.
-                $pageCount += 1; # Increment this each time there is a good page. If it is 0 at the end, discard the div altogether.
-                $localname = $wgContLang->getLanguageName( $lang );
+                $localname = $wgContLang->getLanguageName( $lang ); # Is there a better way to do this?
                 $url = $tlang->getLinkUrl();
                 $output .= "<li id=\"n-$lang\"><a href=\"$url\">$localname</a></li>";
             }
         }
-        
-        if ( $pageCount > 0 ) {
-            $output .= '</ul></div>';
-            $bar['languages'] = $output; # Add the completed HTML to the sidebar.
-        }
+
+        $output .= '</ul></div>';
+        $bar['languages'] = $output; # Add the completed HTML to the sidebar.
     }
     
     return true;
