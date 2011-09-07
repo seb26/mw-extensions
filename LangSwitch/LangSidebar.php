@@ -63,9 +63,6 @@ function wfLangSidebar( $skin, &$bar ) {
             $bar['languages'] = $output; # Add the completed HTML to the sidebar.
         }
     }
-    else {
-        print_r( 'NS not in allowed list' );
-    }
     
     return true;
     
