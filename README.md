@@ -7,14 +7,21 @@ List
 ----
 
 * **LangSwitch** &ndash; displays translated strings according to the page language.
+* **LangSidebar** &ndash; adds links to sidebar for navigation between different language pages.
 
 Installation
 ------------
 
-**LangSwitch** &ndash; requires MediaWiki 1.17.0 or higher.
-
+**LangSwitch** &ndash; tested on MediaWiki 1.16.5+
+    
+    $wgAllowedLanguages = array( 'ar', 'cs', 'da', ... );
     require_once( "$IP/extensions/LangSwitch/LangSwitch.php" );
-    $wgLangSwitchAllowedLangs = array( 'ar', 'cs', 'da', ... );
+    require_once( "$IP/extensions/LangSwitch/LangSidebar.php" );
+    
+Hooks:
+
+* LangSwitch: ParserFirstCallInit, MagicWordwgVariableIDs, LanguageGetMagic, ParserGetVariableValueSwitch
+* LangSidebar: SkinBuildSidebar
 
 Development
 -----------
