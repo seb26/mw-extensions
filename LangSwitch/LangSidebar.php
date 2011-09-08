@@ -39,19 +39,48 @@ function wfLangSidebar( $skin, &$bar ) {
 
     $title = $skin->mTitle;
     
+    # Check the page's namespace is in the whitelist.
     if ( in_array( $title->mNamespace, $wgLangSidebarShowNS ) ) {
-        # The page's namespace matches the whitelist.
+        
+        # The title of the page is split into an array per '/'.
+        # The URLs, page prefixes and titles have to work differently depending on
+        # whether or not the page is English (i.e. no lang /suffix) or not.
+        
+        # Remember that this extension always assumes that the English page (or 'root') exists,
+        # and that the link to English in the sidebar will always be displayed, even if the
+        # page itself does not exist.
         
         $tparts = explode( '/', $title );
+
+        # Set page language, based on the last element in the array (i.e. "Page/foo/bar/ru" ).
+        if ( in_array( end( $tparts ), $wgAllowedLanguages ) ) {
+            $pageLang = end( $tparts );
+        }
+        else {
+            $pageLang = 'en';
+        }
+        
+        # If there are more than 2 title parts, there is some work to be done.
+        if ( count( $tparts ) > 2 ) {
+            if ( $pageLang == 'en' ) {
+                $tlangPrefix = $title->mPrefixedText;
+            }
+            else {
+                $tlangPrefix = implode( '/', array_slice( $tparts, 0, -1, true ) );
+            }
+        }
+        else {
+            $tlangPrefix = $tparts[0];
+        }
+        
+        # Start building the list of links.
         $output = '<div class="portal"><ul>';
-        
-        $en = Title::newFromText( $tparts[0] );
+        $en = Title::newFromText( $tlangPrefix );
         $enUrl = $en->getLinkUrl();
-        
         $output .= "<li id=\"n-en\"><a href=\"$enUrl\">English</a></li>";
-        
-        foreach ( $wgAllowedLanguages as $lang ) {
-            $tlang = Title::newFromText( $tparts[0] . '/' . $lang );
+
+        foreach ( $wgAllowedLanguages as $lang ) {  
+            $tlang = Title::newFromText( $tlangPrefix . '/' . $lang );
             $id = $tlang->getArticleID();
             if ( $id !== 0 ) {
                 # If the page is a valid title.
