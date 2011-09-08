@@ -10,16 +10,14 @@
  * 
  */
 
-if ( !defined( 'MEDIAWIKI' ) ) {
-    die( 'This file is a MediaWiki extension, it is not a valid entry point' );
-}
+if ( !defined( 'MEDIAWIKI' ) ) { die( 'This file is a MediaWiki extension, it is not a valid entry point' ); }
 
 $wgExtensionCredits['parserhook'][] = array(
-       'name' => 'LangSidebar',
-       'author' => 'seb26', 
-       'url' => 'https://github.com/seb26/mw-extensions', 
-       'description' => 'Displays links to translated pages in the sidebar'
-       );
+   'name' => 'LangSidebar',
+   'author' => 'seb26', 
+   'url' => 'https://github.com/seb26/mw-extensions', 
+   'description' => 'Displays links to translated pages in the sidebar'
+   );
        
 $wgLangSidebarShowNS = array( 
     NS_TEMPLATE,
@@ -31,9 +29,8 @@ $wgLangSidebarShowNS = array(
        
 $wgHooks['SkinBuildSidebar'][] = 'wfLangSidebar';
 
-/*
- * This function works by creating a Title obj for each allowed language and checking if it has a valid ID.
- */
+# This function works by creating a Title obj for each allowed language and checking if it has a valid ID.
+
 function wfLangSidebar( $skin, &$bar ) {
     global $wgContLang, $wgAllowedLanguages, $wgLangSidebarShowNS;
 
@@ -60,8 +57,8 @@ function wfLangSidebar( $skin, &$bar ) {
             $pageLang = 'en';
         }
         
-        # If there are more than 2 title parts, there is some work to be done.
-        if ( count( $tparts ) > 2 ) {
+        # If there are 2 or more title parts, there is some work to be done.
+        if ( count( $tparts ) >= 2 ) {
             if ( $pageLang == 'en' ) {
                 $tlangPrefix = $title->mPrefixedText;
             }
@@ -74,7 +71,7 @@ function wfLangSidebar( $skin, &$bar ) {
         }
         
         # Start building the list of links.
-        $output = '<div class="portal"><ul>';
+        $output = '<ul>';
         $en = Title::newFromText( $tlangPrefix );
         $enUrl = $en->getLinkUrl();
         $output .= "<li id=\"n-en\"><a href=\"$enUrl\">English</a></li>";
@@ -83,15 +80,16 @@ function wfLangSidebar( $skin, &$bar ) {
             $tlang = Title::newFromText( $tlangPrefix . '/' . $lang );
             $id = $tlang->getArticleID();
             if ( $id !== 0 ) {
-                # If the page is a valid title.
+                # The page ID was non-zero, meaning it's a valid page.
                 $localname = $wgContLang->getLanguageName( $lang ); # Is there a better way to do this?
                 $url = $tlang->getLinkUrl();
                 $output .= "<li id=\"n-$lang\"><a href=\"$url\">$localname</a></li>";
             }
+            # If it is non-existent, output nothing.
         }
 
-        $output .= '</ul></div>';
-        $bar['languages'] = $output; # Add the completed HTML to the sidebar.
+        $output .= '</ul>';
+        $bar['Languages'] = $output; # Add the completed HTML to the sidebar.
     }
     
     return true;
