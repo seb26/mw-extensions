@@ -108,27 +108,25 @@ class ExtLangUtils {
         global $wgAllowedLanguages;
         
         if ( $title == null || $title == '' ) {
-            return 'FAIL';
+            return 'error';
+        }
+        
+        $titleparts = explode( '/', $title );
+        if ( count( $titleparts ) == 0 ) {
+            # There are no slashes (definite page title).
+            return 'en';
         }
         else {
-            if ( strpos($title, '/') !== false ) {
-                # Only process if there is a '/' in the title, waste of effort otherwise.
-                # Return last occurence of "/xxx", then return "/xxx" without its first character.
-                $sub = substr( strrchr($title, '/'), 1); 
-                if ( in_array( $sub, $wgAllowedLanguages ) ) {
-                    return $sub;
-                }
-                else {
-                    return 'en';
-                }
+            $end = end( $titleparts );
+            # If the last element is a valid language suffix
+            if ( in_array( $end, $wgAllowedLanguages ) ) {
+                return $end;
             }
-            else { 
-                # If there isn't, skip ze nonsense and set lang to 'en'.
+            else {
                 return 'en';
             }
         }
-
-        return 'null';
+        
     }
     
     # For obtaining the page language from a title or parts of a title already exploded with array().
