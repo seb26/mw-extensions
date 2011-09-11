@@ -301,8 +301,9 @@ class ExtLangUtilsSwitchString {
         return true;
     }
     
-    # {{#ifpagelang}} will return 
-    # 
+    # {{#ifpagelang:}} will return a value similarily to {{#ifeq:}} based on the page's language. All
+    # instances of '$1' inside each string will be replaced with the page's current language, to avoid
+    # the need for {{PAGELANG}} calls inside each string; now it is just '$1'.
     function ifpagelang( $parser, $frame, $args ) {
         $this->setLang( $parser );
         
