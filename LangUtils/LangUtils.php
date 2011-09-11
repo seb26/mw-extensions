@@ -283,13 +283,16 @@ class ExtLangUtilsSwitchString {
     }
     
     function varGiveValue( &$parser, &$cache, &$magicWordId, &$ret ) {
+        $this->setLang( $parser );
         switch ( $magicWordId ) {
             case 'pagelang':
-                $this->setLang( $parser );
+                # Simply return the page language as a magic word variable.
                 $ret = $parser->mPageLang;
                 break;
             case 'pagelangsuffix':
-                $this->setLang( $parser );
+                # Returns '' for en pages and '/xx' for language pages. Replacement 
+                # of {{if lang}} templates. More advanced needs can use {{#ifpagelang:}}
+                # instead, as it has '$1' replacement features.
                 if ( $parser->mPageLang == 'en' ) {
                     $ret = '';
                 }
@@ -307,10 +310,7 @@ class ExtLangUtilsSwitchString {
     function ifpagelang( $parser, $frame, $args ) {
         $this->setLang( $parser );
         
-        # Format:
-        # {{#ifpagelang: xx | True | False }}
-        
-        $value = trim( $frame->expand( $args[0] ) ); # xx
+        $value = trim( $frame->expand( $args[0] ) ); # the first field (i.e. the lang code to check against)
         
         if ( $value == '' || $value == null ) {
             $value = 'en';
