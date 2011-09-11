@@ -10,7 +10,7 @@ List
 
 * SwitchString &ndash; 1.16.5+ &ndash; enables {{#langswitch:}} to display the correct translation depending on the page
 * SidebarList &ndash; 1.14.0+ &ndash; adds a list of all existing translations to the navigation links (replaces manual solutions like {{languages}})
-* PageClass &ndash; 1.17.0+ &ndash; adds "pagelang-xx" class to the <body> tag to allow language-specific CSS
+* PageClass &ndash; 1.17.0+ &ndash; adds "pagelang-xx" class to the `<body>` tag to allow language-specific CSS
 
 Installation
 ------------

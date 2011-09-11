@@ -13,7 +13,7 @@
 if ( !defined( 'MEDIAWIKI' ) ) { die( 'This file is a MediaWiki extension, it is not a valid entry point' ); }
 
 $wgExtensionCredits['parserhook'][] = array(
-   'name' => 'LangSidebar',
+   'name' => 'LangUtils',
    'author' => 'seb26', 
    'url' => 'https://github.com/seb26/mw-extensions', 
    'description' => 'Several utilities to assist multilanguage wikis' # lololol
@@ -44,7 +44,7 @@ $wgAllowedLanguages = array(
     'tr', 
     'zh-hans', 
     'zh-hant'
-    );
+);
     
 $wgLangUtilsSwitchString = false;
 $wgLangUtilsSidebarList = false;
@@ -54,7 +54,7 @@ $wgLangUtilsSidebarList = false;
         NS_TALK,
         NS_CATEGORY,
         NS_MAIN
-        );
+    );
 $wgLangUtilsPageClass = false;
 
 # Setup
@@ -77,9 +77,11 @@ function wfLangUtilsSetup() {
         $wgLangUtilsSwitchInst = new ExtLangUtilsSwitchStringInit;
         
         $wgHooks['ParserFirstCallInit'][] = array( &$wgLangUtilsSwitchInst, 'registerParser' );
+        
+        # Magic words & variables
         $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLangUtilsSwitchInst, 'declareMagicVar');
         $wgHooks['LanguageGetMagic'][] = array( &$wgLangUtilsSwitchInst, 'registerMagic');
-        $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLangUtilsSwitchInst, 'currentpagelang');
+        $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLangUtilsSwitchInst, 'varGiveValue');
     }
     
     if ( $wgLangUtilsSidebarList || $wgLangUtilsPageClass ) {
@@ -221,20 +223,27 @@ class ExtLangUtilsSwitchStringInit {
     var $realObj;
 
     function registerParser( &$parser ) {
-        $parser->setFunctionHook( 'langswitch', array( &$this, 'parseLang' ), SFH_OBJECT_ARGS );
-        $parser->setFunctionHook( 'currentpagelang', array( &$this, 'currentpagelang' ), SFH_NO_HASH );
-        $parser->gotPageLang = false;
+        $parser->setFunctionHook( 'langswitch', array( &$this, 'langswitch' ), SFH_OBJECT_ARGS );
+        $parser->setFunctionHook( 'ifpagelang', array( &$this, 'ifpagelang' ), SFH_OBJECT_ARGS );
+        
+        # Variables
+        $parser->setFunctionHook( 'pagelang', array( &$this, 'varGiveValue' ), SFH_NO_HASH );
+        $parser->setFunctionHook( 'pagelangsuffix', array( &$this, 'mgPageLangSuffix' ), SFH_NO_HASH );
+        $parser->mPageLangSet = false;
         return true;
     }
         
     function registerMagic( &$magicWords, $langCode ) {
         $magicWords['langswitch'] = array( 0, 'langswitch' );
-        $magicWords['currentpagelang'] = array( 0, 'currentpagelang' );
+        $magicWords['ifpagelang'] = array( 0, 'ifpagelang' );
+        $magicWords['pagelang'] = array( 0, 'pagelang' );
+        $magicWords['pagelangsuffix'] = array( 0, 'pagelangsuffix' );
         return true;
     }
 
     function declareMagicVar( &$customVariableIds ) {
-        $customVariableIds[] = 'currentpagelang';
+        $customVariableIds[] = 'pagelang';
+        $customVariableIds[] = 'pagelangsuffix';
         return true;
     }
 
@@ -265,26 +274,62 @@ class ExtLangUtilsSwitchString {
         return true;
     }
     
-    function currentpagelang( &$parser, &$cache, &$magicWordId, &$ret ) {
-        if ( $magicWordId == 'currentpagelang' ) {
-            if ( $parser->gotPageLang ) {
-                $ret = $parser->mPageLang;
-            }
-            else {
-                $parser->mPageLang = ExtLangUtils::getLang( $parser->getTitle()->mTextform );
-                $parser->gotPageLang = true;
-                $ret = $parser->mPageLang;
-            }
+    function setLang( &$parser ) {
+        if ( $parser->mPageLangSet == false) {
+            $parser->mPageLang = ExtLangUtils::getLang( $parser->getTitle()->mTextform );
+            $parser->mPageLangSet = true;
         }
         return true;
     }
     
-    function parseLang( $parser, $frame, $args ) {
-
-        if ( $parser->gotPageLang == false) {
-            $parser->mPageLang = ExtLangUtils::getLang( $parser->getTitle()->mTextform );
-            $parser->gotPageLang = true;
+    function varGiveValue( &$parser, &$cache, &$magicWordId, &$ret ) {
+        switch ( $magicWordId ) {
+            case 'pagelang':
+                $this->setLang( $parser );
+                $ret = $parser->mPageLang;
+                break;
+            case 'pagelangsuffix':
+                $this->setLang( $parser );
+                if ( $parser->mPageLang == 'en' ) {
+                    $ret = '';
+                }
+                else {
+                    $ret = '/' . $parser->mPageLang;
+                }
+                break;
         }
+        return true;
+    }
+    
+    # {{#ifpagelang}} will return 
+    # 
+    function ifpagelang( $parser, $frame, $args ) {
+        $this->setLang( $parser );
+        
+        # Format:
+        # {{#ifpagelang: xx | True | False }}
+        
+        $value = trim( $frame->expand( $args[0] ) ); # xx
+        
+        if ( $value == '' || $value == null ) {
+            $value = 'en';
+        }
+        
+        $true = isset( $args[1] ) ? $args[1] : '';
+        $false = isset( $args[2] ) ? $args[2] : '';
+
+        if ( $parser->mPageLang == $value ) {
+            return str_replace( '$1', $parser->mPageLang, trim( $frame->expand( $true ) ) ); # Expand the 'True' field.
+        }
+        else {
+            return str_replace( '$1', $parser->mPageLang, trim( $frame->expand( $false ) ) ); # Expand the 'False' field.
+        }
+
+    }
+    
+    function langswitch( $parser, $frame, $args ) {
+
+        $this->setLang( $parser );
 
         if ( count( $args ) == 0 ) {
             return '';
