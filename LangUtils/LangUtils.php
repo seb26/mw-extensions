@@ -114,8 +114,8 @@ class ExtLangUtils {
         }
         
         $titleparts = explode( '/', $title );
-        if ( count( $titleparts ) == 0 ) {
-            # There are no slashes (definite page title).
+        if ( count( $titleparts ) == 1 ) {
+            # There are no slashes (definite English page).
             return 'en';
         }
         else {
