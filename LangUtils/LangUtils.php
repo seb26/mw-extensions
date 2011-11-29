@@ -151,7 +151,7 @@ class ExtLangUtilsSkin {
     public function addSidebar( $skin, &$bar ) {
         global $wgContLang, $wgAllowedLanguages, $wgLangUtilsSidebarListNS;
 
-        $title = $skin->mTitle;
+        $title = $skin->getTitle();
         
         # Check the page's namespace is in the whitelist.
         if ( in_array( $title->mNamespace, $wgLangUtilsSidebarListNS ) ) {
