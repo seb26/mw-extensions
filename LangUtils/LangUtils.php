@@ -318,11 +318,6 @@ class ExtLangUtils {
 
             $titleText = $title->mPrefixedText;
             $namespace = $title->mNamespace;
-            
-            print_r( "<!--" );
-            print_r( $title );
-            print_r( "-->" );
-           
 
             $langParts = ExtLangUtils::getLang( $titleText, $namespace, $returnMatch = True );
 
