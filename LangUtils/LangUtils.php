@@ -387,7 +387,7 @@ class ExtLangUtils {
                     $page = Title::newFromText( $tPrefix . ' ' . $lang . $fileExt );
                 }
                 else {
-                    $page = Title::newFromText ( $langPrefix . '/' . $lang );
+                    $page = Title::newFromText( $langPrefix . '/' . $lang );
                 }
 
                 if ( $page->getArticleID() !== 0 ) {
@@ -400,6 +400,7 @@ class ExtLangUtils {
 
             $output .= '</ul>';
             $bar['Languages'] = $output; # Add the completed HTML to the sidebar.
+
         }
 
         return true;
