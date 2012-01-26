@@ -2,7 +2,7 @@
 
 /* 
  * Copyright (c) 2011 seb26. All rights reserved.
- * Source code is licensed under the terms of the Modified BSD License.
+ * Source code is licensed under the terms of the 3-clause Modified BSD License.
  * 
  * MediaWiki is free software; you can redistribute it and/or modify it under the 
  * terms of the GNU General Public License as published by the Free Software Foundation.
@@ -16,10 +16,11 @@ $wgExtensionCredits['parserhook'][] = array(
    'name' => 'LangUtils',
    'author' => 'seb26', 
    'url' => 'https://github.com/seb26/mw-extensions', 
-   'description' => 'Several utilities to assist multilanguage wikis' # lololol
+   'description' => 'Utilities to assist multilingual wikis' # lololol
    );
    
-# Globals
+
+# Global variable defaults
 
 $wgAllowedLanguages = array( 
     'ar', 
@@ -46,179 +47,62 @@ $wgAllowedLanguages = array(
     'zh-hant'
 );
     
-$wgLangUtilsSwitchString = false;
-$wgLangUtilsSidebarList = false;
-    $wgLangUtilsSidebarListNS = array( 
+$wgLangUtils_LangSwitch = false;
+$wgLangUtils_SidebarList = false;
+    $wgLangUtils_SidebarList_NS = array( 
         NS_TEMPLATE,
         NS_HELP,
         NS_TALK,
         NS_CATEGORY,
-        NS_MAIN
+        NS_MAIN,
+        NS_FILE
     );
-$wgLangUtilsPageClass = false;
+$wgLangUtils_PageClass = false;
 
 # Setup
    
 $wgExtensionFunctions[] = 'wfLangUtilsSetup';
 
 function wfLangUtilsSetup() {
+
     global 
-        $wgLangUtilsSwitchString,
-        $wgLangUtilsSidebarList,
-        $wgLangUtilsPageClass,
+        $wgLangUtils_LangSwitch,
+        $wgLangUtils_SidebarList,
+        $wgLangUtils_PageClass,
         
         $wgHooks,
         $wgAllowedLanguages;
         
     $wgAutoloadClasses['ExtLangUtils'] = dirname( __FILE__ );
         
-    if ( $wgLangUtilsSwitchString ) {
-        $wgAutoloadClasses['ExtLangUtilsSwitchString'] = dirname( __FILE__ );
-        $wgLangUtilsSwitchInst = new ExtLangUtilsSwitchStringInit;
-        
-        $wgHooks['ParserFirstCallInit'][] = array( &$wgLangUtilsSwitchInst, 'registerParser' );
-        
-        # Magic words & variables
-        $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLangUtilsSwitchInst, 'declareMagicVar');
-        $wgHooks['LanguageGetMagic'][] = array( &$wgLangUtilsSwitchInst, 'registerMagic');
-        $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLangUtilsSwitchInst, 'varGiveValue');
-    }
+    if ( $wgLangUtils_LangSwitch || $wgLangUtils_SidebarList || $wgLangUtils_PageClass ) {
     
-    if ( $wgLangUtilsSidebarList || $wgLangUtilsPageClass ) {
-    
-        $wgLangUtilsSkinInst = new ExtLangUtilsSkin;
+        if ( $wgLangUtils_LangSwitch ) {
         
-        if ( $wgLangUtilsSidebarList ) {
-            $wgHooks['SkinBuildSidebar'][] = array( &$wgLangUtilsSkinInst, 'addSidebar' );
+            $wgLangUtils_Stub = new ExtLangUtils_Stub;
+            $wgHooks['ParserFirstCallInit'][] = array( &$wgLangUtils_Stub, 'registerParser' );
+            
+            # Magic words & variables
+            $wgHooks['MagicWordwgVariableIDs'][] = array( &$wgLangUtils_Stub, 'declareMagicVar');
+            $wgHooks['LanguageGetMagic'][] = array( &$wgLangUtils_Stub, 'registerMagic');
+            $wgHooks['ParserGetVariableValueSwitch'][] = array( &$wgLangUtils_Stub, 'varGiveValue');
+            
         }
-        if ( $wgLangUtilsPageClass ) {
-            # Requires 1.17.0 and higher.
-            $wgHooks['OutputPageBodyAttributes'][] = array( &$wgLangUtilsSkinInst, 'addBodyClass' );
+        
+        if ( $wgLangUtils_SidebarList ) {
+            $wgHooks['SkinBuildSidebar'][] = array( &$wgLangUtils_Stub, 'skinAddSidebar');
         }
+        if ( $wgLangUtils_PageClass ) {
+            $wgHooks['OutputPageBodyAttributes'][] = array( &$wgLangUtils_Stub, 'skinAddBodyClass');
+        }
+            
     }
     
     return true;
         
 }
 
-# Classes
-
-class ExtLangUtils {
-
-    # For obtaining the page language from a title string, preferably given from Title->mTextform.
-    public static function getLang( $title ) {
-        global $wgAllowedLanguages;
-        
-        if ( $title == null || $title == '' ) {
-            return 'error';
-        }
-        
-        $titleparts = explode( '/', $title );
-        if ( count( $titleparts ) == 1 ) {
-            # There are no slashes (definite English page).
-            return 'en';
-        }
-        else {
-            $end = end( $titleparts );
-            # If the last element is a valid language suffix
-            if ( in_array( $end, $wgAllowedLanguages ) ) {
-                return $end;
-            }
-            else {
-                return 'en';
-            }
-        }
-        
-    }
-    
-    # For obtaining the page language from a title or parts of a title already exploded with array().
-    public static function getLangFromArray( $titleparts ) {
-        global $wgAllowedLanguages;
-        
-        if ( in_array( end( $titleparts ), $wgAllowedLanguages ) ) {
-            return end( $titleparts );
-        }
-        else {
-            return 'en';
-        }
-    }
-    
-}
-
-
-class ExtLangUtilsSkin {
-
-    public function addSidebar( $skin, &$bar ) {
-        global $wgContLang, $wgAllowedLanguages, $wgLangUtilsSidebarListNS;
-
-        $title = $skin->getTitle();
-        
-        # Check the page's namespace is in the whitelist.
-        if ( in_array( $title->mNamespace, $wgLangUtilsSidebarListNS ) ) {
-            
-            # The title of the page is split into an array per '/'.
-            # The URLs, page prefixes and titles have to work differently depending on
-            # whether or not the page is English (i.e. no lang /suffix) or not.
-            
-            # Remember that this extension always assumes that the English page (or 'root') exists,
-            # and that the link to English in the sidebar will always be displayed, even if the
-            # page itself does not exist.
-            
-            $tparts = explode( '/', $title );
-
-            # Set page language, based on the last element in the array (i.e. "Page/foo/bar/ru" ).
-            $pageLang = ExtLangUtils::getLangFromArray( $tparts );
-            
-            # If there are 2 or more title parts, there is some work to be done.
-            if ( count( $tparts ) >= 2 ) {
-                if ( $pageLang == 'en' ) {
-                    $tlangPrefix = $title->mPrefixedText;
-                }
-                else {
-                    $tlangPrefix = implode( '/', array_slice( $tparts, 0, -1, true ) );
-                }
-            }
-            else {
-                $tlangPrefix = $tparts[0];
-            }
-            
-            # Start building the list of links.
-            $output = '<ul>';
-            $en = Title::newFromText( $tlangPrefix );
-            $enUrl = $en->getLinkUrl();
-            $output .= "<li id=\"n-en\"><a href=\"$enUrl\">English</a></li>";
-
-            foreach ( $wgAllowedLanguages as $lang ) {  
-                $tlang = Title::newFromText( $tlangPrefix . '/' . $lang );
-                $id = $tlang->getArticleID();
-                if ( $id !== 0 ) {
-                    # The page ID was non-zero, meaning it's a valid page.
-                    $localname = $wgContLang->getLanguageName( $lang ); # Is there a better way to do this?
-                    $url = $tlang->getLinkUrl();
-                    $output .= "<li id=\"n-$lang\"><a href=\"$url\">$localname</a></li>";
-                }
-                # If it is non-existent, output nothing.
-            }
-
-            $output .= '</ul>';
-            $bar['Languages'] = $output; # Add the completed HTML to the sidebar.
-        }
-        
-        return true;
-        
-    }
-    
-    public function addBodyClass( $out, $skin, &$bodyAttrs ) {
-    
-        $pageLang = ExtLangUtils::getLang( $out->mPagetitle );
-        $bodyAttrs['class'] .= ' pagelang-' . $pageLang;
-    
-        return true;
-    }
-}
-
-    
-class ExtLangUtilsSwitchStringInit {
+class ExtLangUtils_Stub {
 
     var $realObj;
 
@@ -229,7 +113,6 @@ class ExtLangUtilsSwitchStringInit {
         # Variables
         $parser->setFunctionHook( 'pagelang', array( &$this, 'varGiveValue' ), SFH_NO_HASH );
         $parser->setFunctionHook( 'pagelangsuffix', array( &$this, 'mgPageLangSuffix' ), SFH_NO_HASH );
-        $parser->mPageLangSet = false;
         return true;
     }
         
@@ -246,38 +129,80 @@ class ExtLangUtilsSwitchStringInit {
         $customVariableIds[] = 'pagelangsuffix';
         return true;
     }
-
-    # From ParserFunctions.php
     
-	/** Defer ParserClearState */
-	function clearState( $parser ) {
-		if ( !is_null( $this->realObj ) ) {
-			$this->realObj->clearState( $parser );
-		}
-		return true;
-	}
-
-	/** Pass through function call */
-	function __call( $name, $args ) {
-		if ( is_null( $this->realObj ) ) {
-			$this->realObj = new ExtLangUtilsSwitchString;
-			$this->realObj->clearState( $args[0] );
-		}
-		return call_user_func_array( array( $this->realObj, $name ), $args );
-	}
-
-}
- 
-class ExtLangUtilsSwitchString { 
-
-    function clearState( $parser ) {
-        return true;
+    # From http://svn.wikimedia.org/viewvc/mediawiki/tags/REL1_17_0/extensions/ParserFunctions/ParserFunctions.php?view=markup
+    # I don't really understand the whole stub / pass through concept
+    /** Pass through function call */
+    function __call( $name, $args ) {
+        if ( is_null( $this->realObj ) ) {
+            $this->realObj = new ExtLangUtils;
+        }
+        return call_user_func_array( array( $this->realObj, $name ), $args );
     }
     
+}
+
+class ExtLangUtils {
+
+    # For obtaining the page language from a title string, preferably given from Title->mTextform.
+    public static function getLang( $title, $namespace = false, $returnMatch = false ) {
+        global $wgAllowedLanguages;
+        
+        if ( $title == null || $title == '' ) {
+            return '';
+        }
+        
+        # Use regular expression if page is a file
+        if ( $namespace == NS_FILE ) {
+            
+            $m = preg_match( '/\.?(.+?)\..+?$/', end( explode( ' ', $title ) ), $match );
+            if ( $m ) {
+                $lang = $match[1];
+            }
+            else {
+                $lang = 'en';
+            }
+            
+            if ( !in_array( $lang, $wgAllowedLanguages ) ) {
+                $lang = 'en';
+            }
+            
+            if ( $returnMatch ) {
+                return array( $lang, $match );
+            }
+            else {
+                return $lang;
+            }
+        
+        }
+        else {
+            
+            $tparts = explode( '/', $title );
+            
+            if ( count( $tparts ) == 1 ) {
+                # No slashes, assume English
+                return 'en';
+            }
+            
+            $lang = end( $tparts );
+            
+            if ( !in_array( $lang, $wgAllowedLanguages ) ) {
+                $lang = 'en';
+            }
+            
+            return $lang;
+            
+        }
+    }
+    
+    ## 
+    ## {{#langswitch:}} and related parser functions
+    ##
+    
     function setLang( &$parser ) {
-        if ( $parser->mPageLangSet == false) {
-            $parser->mPageLang = ExtLangUtils::getLang( $parser->getTitle()->mTextform );
-            $parser->mPageLangSet = true;
+        $title = $parser->getTitle();
+        if ( !property_exists( $title, mPageLang ) ) {
+            $title->mPageLang = ExtLangUtils::getLang( $title->mTextform, $title->mNamespace );
         }
         return true;
     }
@@ -287,17 +212,18 @@ class ExtLangUtilsSwitchString {
         switch ( $magicWordId ) {
             case 'pagelang':
                 # Simply return the page language as a magic word variable.
-                $ret = $parser->mPageLang;
+                $ret = $parser->getTitle()->mPageLang;
                 break;
             case 'pagelangsuffix':
                 # Returns '' for en pages and '/xx' for language pages. Replacement 
                 # of {{if lang}} templates. More advanced needs can use {{#ifpagelang:}}
                 # instead, as it has '$1' replacement features.
-                if ( $parser->mPageLang == 'en' ) {
+                $lang = $parser->getTitle()->mPageLang;
+                if ( $lang == 'en' ) {
                     $ret = '';
                 }
                 else {
-                    $ret = '/' . $parser->mPageLang;
+                    $ret = '/' . $lang;
                 }
                 break;
         }
@@ -309,21 +235,23 @@ class ExtLangUtilsSwitchString {
     # the need for {{PAGELANG}} calls inside each string; now it is just '$1'.
     function ifpagelang( $parser, $frame, $args ) {
         $this->setLang( $parser );
-        
+
         $value = trim( $frame->expand( $args[0] ) ); # the first field (i.e. the lang code to check against)
         
         if ( $value == '' || $value == null ) {
             $value = 'en';
         }
         
+        $lang = $parser->getTitle()->mPageLang;
+        
         $true = isset( $args[1] ) ? $args[1] : '';
         $false = isset( $args[2] ) ? $args[2] : '';
 
-        if ( $parser->mPageLang == $value ) {
-            return str_replace( '$1', $parser->mPageLang, trim( $frame->expand( $true ) ) ); # Expand the 'True' field.
+        if ( $lang == $value ) {
+            return str_replace( '$1', $lang, trim( $frame->expand( $true ) ) ); # Expand the 'True' field.
         }
         else {
-            return str_replace( '$1', $parser->mPageLang, trim( $frame->expand( $false ) ) ); # Expand the 'False' field.
+            return str_replace( '$1', $lang, trim( $frame->expand( $false ) ) ); # Expand the 'False' field.
         }
 
     }
@@ -343,7 +271,7 @@ class ExtLangUtilsSwitchString {
         if ( $forceLang == '' || $forceLang == null ) {
             # $forceLang itself will always be given a value, but if it is empty / null,
             # assume that no language is being forced and just use the page lang.
-            $lang = $parser->mPageLang;
+            $lang = $parser->getTitle()->mPageLang;
         }
         else {
             $lang = $forceLang;
@@ -375,4 +303,152 @@ class ExtLangUtilsSwitchString {
         }
         
     }
+    
+    ## 
+    ## Skin functions
+    ## 
+    
+    public function skinAddSidebar( $skin, &$bar ) {
+        global $wgContLang, $wgAllowedLanguages, $wgLangUtils_SidebarList_NS;
+
+        $title = $skin->getTitle();
+        
+        # Check the page's namespace is in the whitelist.
+        if ( in_array( $title->mNamespace, $wgLangUtils_SidebarList_NS ) ) {
+        
+            /*
+            # Old method.
+            
+            # The title of the page is split into an array per '/'.
+            # The URLs, page prefixes and titles have to work differently depending on
+            # whether or not the page is English (i.e. no lang /suffix) or not.
+            
+            # Remember that this extension always assumes that the English page (or 'root') exists,
+            # and that the link to English in the sidebar will always be displayed, even if the
+            # page itself does not exist.
+            
+            $tparts = explode( '/', $title );
+
+            # Set page language, based on the last element in the array (i.e. "Page/foo/bar/ru" ).
+            
+            if ( in_array( end( $tparts ), $wgAllowedLanguages ) ) {
+                $pageLang = end( $tparts );
+            }
+            else {
+                $pageLang = 'en';
+            }
+            
+            # If there are 2 or more title parts, there is some work to be done.
+            if ( count( $tparts ) >= 2 ) {
+                if ( $pageLang == 'en' ) {
+                    $tlangPrefix = $title->mPrefixedText;
+                }
+                else {
+                    $tlangPrefix = implode( '/', array_slice( $tparts, 0, -1, true ) );
+                }
+            }
+            else {
+                $tlangPrefix = $tparts[0];
+            }
+            
+            */
+            
+            $titleText = $title->mPrefixedText;
+            $namespace = $title->mNamespace;
+            
+            $langParts = ExtLangUtils::getLang( $titleText, $namespace, $returnMatch = True );
+            
+            if ( $namespace == NS_FILE ) {
+                $pageLang = $langParts[0];
+                
+                # Getting extension from filename. Remove no characters if English.
+                # e.g. "ru.zip" -> ".zip"; ".zip" -> ".zip"
+                
+                if ( $pageLang == 'en' ) {
+                    $minus = strlen( $langParts[1][1] );
+                }
+                else {
+                    $minus = strlen( $pageLang );
+                }
+
+                $fileExt = substr( $langParts[1][0], $minus );
+                
+                if ( $pageLang == 'en' ) {
+                    $tPrefix = substr( $titleText, 0, -strlen( $fileExt ) );
+                    
+                    $enURL = $title->getLinkUrl();
+                }
+                else {
+                    $tPrefix = substr( $titleText, 0, -strlen( $langParts[1][0] ) - 1 );
+                    $enTitle = $tPrefix . $fileExt;
+
+                    $enURL = Title::newFromText( $enTitle )->getLinkUrl();
+                }
+                
+            }
+            else {
+                $fileExt = false;
+                $pageLang = $langParts;
+                
+                $tparts = explode( '/', $titleText );
+                
+                # If there are 2 or more title parts, there is some work to be done.
+                if ( count( $tparts ) >= 2 ) {
+                    if ( $pageLang == 'en' ) {
+                        $langPrefix = $title->mPrefixedText;
+                    }
+                    else {
+                        $langPrefix = implode( '/', array_slice( $tparts, 0, -1, true ) );
+                    }
+                }
+                else {
+                    $langPrefix = $tparts[0];
+                }
+                
+                if ( $pageLang == 'en' ) {
+                    $enURL = $title->getLinkUrl();
+                }
+                else {
+                    $enURL = Title::newFromText( $langPrefix )->getLinkUrl();
+                }
+                    
+            }
+            
+            # Start building the list of links.
+            $output = '<ul>';
+            $output .= "<li id=\"n-en\"><a href=\"$enURL\">English</a></li>";
+
+            foreach ( $wgAllowedLanguages as $lang ) {
+            
+                if ( $namespace == NS_FILE ) {
+                    $page = Title::newFromText( $tPrefix . ' ' . $lang . $fileExt );
+                }
+                else {
+                    $page = Title::newFromText ( $langPrefix . '/' . $lang );
+                }
+                
+                if ( $page->getArticleID() !== 0 ) {
+                    # ID is non-zero, meaning it exists
+                    $localname = $wgContLang->getLanguageName( $lang ); # Is there a better way to do this?
+                    $URL = $page->getLinkUrl();
+                    $output .= "<li id=\"n-$lang\"><a href=\"$URL\">$localname</a></li>";
+                }
+            }
+
+            $output .= '</ul>';
+            $bar['Languages'] = $output; # Add the completed HTML to the sidebar.
+        }
+        
+        return true;
+        
+    }
+    
+    public function skinAddBodyClass( $out, $skin, &$bodyAttrs ) {
+    
+        $pageLang = ExtLangUtils::getLang( $out->mPagetitle, $out->getTitle()->mNamespace );
+        $bodyAttrs['class'] .= ' pagelang-' . $pageLang;
+    
+        return true;
+    }
+    
 }
