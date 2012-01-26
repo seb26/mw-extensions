@@ -8,8 +8,9 @@ List
 
 **LangUtils**
 
-* SwitchString &ndash; 1.16.5+ &ndash; enables {{#langswitch:}} to display the correct translation depending on the page
+* LangSwitch &ndash; 1.16.5+ &ndash; enables {{#langswitch:}} to display the correct translation depending on the page
 * SidebarList &ndash; 1.14.0+ &ndash; adds a list of all existing translations to the navigation links (replaces manual solutions like {{languages}})
+    * SidebarList also provides links for file pages (for "File:Test.png", it will link to "File:Test fr.png", "File:Test de.png", etc).
 * PageClass &ndash; 1.17.0+ &ndash; adds "pagelang-xx" class to the `<body>` tag to allow language-specific CSS
 
 Installation
@@ -20,17 +21,23 @@ Installation
 The following code should be added to `LocalSettings.php`:
 
     require_once( "$IP/extensions/LangUtils/LangUtils.php" );
-        $wgLangUtilsSwitchString = true;
-        $wgLangUtilsSidebarList = true;
-        $wgLangUtilsPageClass = true; # Requires 1.17.0, set 'false' if lower.
 
 Optional variables:
 
+* `$wgLangUtils_LangSwitch` &ndash; set to false to disable {{#langswitch:}}
+* `$wgLangUtils_SidebarList` &ndash; set to false to disable the sidebar list
+    * `$wgLangUtils_SidebarList_NS` &ndash; whitelist of namespaces to display the sidebar listing on (give as array of namespace constants, e.g. `NS_MAIN`)
+* `$wgLangUtils_PageClass` &ndash; set to false to disable language CSS class (**Note**: this must be disabled on installations lower than 1.17.0).
 * `$wgAllowedLanguages` &ndash; array of strings containing all supported language codes
-* `$wgLangUtilsSidebarListNS` &ndash; whitelist of namespaces to display the sidebar listing on (give as array of namespace constants, e.g. `NS_MAIN`)
 
 Development
 -----------
+
+**Testing**
+
+* **LangUtils**
+    * Developed for stable branch (currently **1.18.1**), tested on this version.
+    * Untested on 1.17.1 or lower.
 
 **TODO**
 
