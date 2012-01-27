@@ -208,6 +208,10 @@ class ThumbnailImage extends MediaTransformOutput {
 		if ( !empty( $options['img-class'] ) ) {
 			$attribs['class'] = $options['img-class'];
 		}
+		if ( !empty( $options['url-query'] ) ) {
+			$attribs['src'] .= '?' . $options['url-query'];
+		}
+
 		return $this->linkWrap( $linkAttribs, Xml::element( 'img', $attribs ) );
 	}
 

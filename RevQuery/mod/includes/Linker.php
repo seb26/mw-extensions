@@ -588,6 +588,9 @@ class Linker {
 				'title' => $fp['title'],
 				'valign' => isset( $fp['valign'] ) ? $fp['valign'] : false ,
 				'img-class' => isset( $fp['border'] ) ? 'thumbborder' : false );
+			if ( isset( $fp['url-query'] ) ) {
+				$params['url-query'] = $fp['url-query'];
+			}
 			$params = self::getImageLinkMTOParams( $fp, $query ) + $params;
 
 			$s = $thumb->toHtml( $params );
