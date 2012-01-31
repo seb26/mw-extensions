@@ -1,12 +1,10 @@
-MediaWiki Extensions
+LangUtils
 ====================
 
-A collection of extensions written by **seb26** for [MediaWiki](http://www.mediawiki.org/wiki/MediaWiki), an open-source wiki software package.
+**LangUtils** is an extension for [MediaWiki](http://www.mediawiki.org/wiki/MediaWiki), an open-source wiki software package, written by **seb26**. To wikis that support multiple languages on the same site, LangUtils provides extra tools and functionality for navigation and displaying language-specific content.
 
-List
+Functionality
 ----
-
-**LangUtils**
 
 * LangSwitch &ndash; 1.16.5+ &ndash; enables {{#langswitch:}} to display the correct translation depending on the page
 * SidebarList &ndash; 1.14.0+ &ndash; adds a list of all existing translations to the navigation links (replaces manual solutions like {{languages}})
@@ -15,8 +13,6 @@ List
 
 Installation
 ------------
-
-**LangUtils**
 
 The following code should be added to `LocalSettings.php`:
 
@@ -35,9 +31,8 @@ Development
 
 **Testing**
 
-* **LangUtils**
-    * Developed for stable branch (currently **1.18.1**), tested on this version.
-    * Untested on 1.17.1 or lower.
+* Developed for stable branch (currently **1.18.1**), tested on this version.
+* Untested on 1.17.1 or lower.
 
 **TODO**
 
