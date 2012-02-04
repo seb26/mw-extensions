@@ -1,0 +1,6 @@
+[submodule "LangUtils"]
+	path = LangUtils
+	url = git://github.com/seb26/langutils.git
+[submodule "RevQuery"]
+	path = RevQuery
+	url = git://github.com/seb26/revquery.git
